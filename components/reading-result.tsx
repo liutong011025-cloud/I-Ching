@@ -1,8 +1,10 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import type { Hexagram } from '@/lib/hexagrams'
 import { HexagramDisplay } from '@/components/hexagram-display'
-import { AlertTriangle } from 'lucide-react'
+import { getHexagramInterpretation } from '@/lib/dify'
+import { AlertTriangle, Loader2 } from 'lucide-react'
 
 interface ReadingResultProps {
   hexagram: Hexagram
@@ -10,7 +12,7 @@ interface ReadingResultProps {
   question: string
 }
 
-function getQuestionAnalysis(hexagram: Hexagram, question: string): string {
+function getQuestionAnalysisFallback(hexagram: Hexagram, question: string): string {
   const ratingAdvice: Record<string, string> = {
     'Highly Auspicious':
       'This is an extremely favorable reading for your question. The energies are aligned in your favor. Conditions suggest a strong potential for positive outcomes. Move forward with confidence, but remain thoughtful in your approach.',
@@ -39,7 +41,40 @@ export function ReadingResult({
   lines,
   question,
 }: ReadingResultProps) {
-  const analysis = getQuestionAnalysis(hexagram, question)
+  const [aiInterpretation, setAiInterpretation] = useState<string | null>(null)
+  const [aiLoading, setAiLoading] = useState(true)
+  const [aiError, setAiError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    setAiLoading(true)
+    setAiError(null)
+    setAiInterpretation(null)
+
+    getHexagramInterpretation(hexagram, question)
+      .then((answer) => {
+        if (!cancelled) {
+          setAiInterpretation(answer)
+          setAiError(null)
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setAiError(err instanceof Error ? err.message : String(err))
+          setAiInterpretation(null)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setAiLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [hexagram.number, question])
+
+  const fallbackAnalysis = getQuestionAnalysisFallback(hexagram, question)
+  const displayContent = aiInterpretation ?? fallbackAnalysis
 
   const ratingColor: Record<string, string> = {
     'Highly Auspicious': 'text-primary',
@@ -86,7 +121,7 @@ export function ReadingResult({
         </p>
       </div>
 
-      {/* Question Analysis */}
+      {/* Question Analysis（AI 解读） */}
       <div className="mb-8 rounded-lg border border-primary/20 bg-primary/5 p-6">
         <h3 className="mb-4 font-serif text-xl font-medium text-primary">
           Reading for Your Question
@@ -96,14 +131,31 @@ export function ReadingResult({
             {'"' + question + '"'}
           </p>
         </div>
-        {analysis.split('\n\n').map((para, i) => (
-          <p
-            key={i}
-            className="mb-3 leading-relaxed text-foreground/80 last:mb-0"
-          >
-            {para}
-          </p>
-        ))}
+        {aiLoading ? (
+          <div className="flex items-center gap-3 py-4 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span>AI 正在解读卦象…</span>
+          </div>
+        ) : (
+          <>
+            {aiError != null && (
+              <p className="mb-3 text-sm text-amber-600 dark:text-amber-500">
+                未能获取 AI 解读（{aiError}），以下为默认解读：
+              </p>
+            )}
+            {displayContent
+              .split(/\n\n+/)
+              .filter(Boolean)
+              .map((para, i) => (
+                <p
+                  key={i}
+                  className="mb-3 leading-relaxed text-foreground/80 last:mb-0"
+                >
+                  {para}
+                </p>
+              ))}
+          </>
+        )}
       </div>
 
       {/* Disclaimer */}
