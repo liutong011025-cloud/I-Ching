@@ -190,7 +190,7 @@ export function ReadingResult({
               <div className="flex items-center gap-2 border-b border-border/50 px-3 py-2">
                 <ImageIcon className="h-4 w-4 text-primary/70" />
                 <span className="text-xs font-medium tracking-wide text-muted-foreground">
-                  卦象意境图
+                  Hexagram Vision
                 </span>
               </div>
               <div className="relative aspect-[2/3] w-full">
@@ -198,14 +198,14 @@ export function ReadingResult({
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted/30 px-4 text-center">
                     <Loader2 className="h-6 w-6 animate-spin text-primary/60" />
                     <span className="text-xs text-muted-foreground">
-                      正在生成意境图…
+                      Generating vision…
                     </span>
                   </div>
                 ) : imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={imageUrl}
-                    alt={`${hexagram.chineseName} 卦象意境图`}
+                    alt={`${hexagram.name} hexagram vision`}
                     className="h-full w-full object-cover"
                     loading="lazy"
                   />
@@ -213,8 +213,8 @@ export function ReadingResult({
                   <div className="absolute inset-0 flex items-center justify-center bg-muted/20 px-3 text-center">
                     <p className="text-xs text-muted-foreground">
                       {imageError
-                        ? `意境图生成失败（${imageError}）`
-                        : '暂无意境图'}
+                        ? `Vision generation failed (${imageError})`
+                        : 'No vision available'}
                     </p>
                   </div>
                 )}
