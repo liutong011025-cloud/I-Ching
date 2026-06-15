@@ -64,7 +64,7 @@ export function IChingOracle() {
       <header className="border-b border-border/50 py-6">
         <div className="mx-auto max-w-3xl px-4 text-center">
           <h1 className="font-serif text-3xl font-light tracking-wide text-foreground md:text-4xl">
-            I Ching Oracle
+            Yi-Guide
           </h1>
           <p className="mt-1 text-sm tracking-[0.2em] text-muted-foreground uppercase">
             Book of Changes
