@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import type { Hexagram } from '@/lib/hexagrams'
 import { HexagramDisplay } from '@/components/hexagram-display'
 import { getHexagramInterpretation } from '@/lib/dify'
-import { AlertTriangle, Loader2 } from 'lucide-react'
+import { generateHexagramImage } from '@/lib/volcengine'
+import { AlertTriangle, ImageIcon, Loader2 } from 'lucide-react'
 
 interface ReadingResultProps {
   hexagram: Hexagram
@@ -44,12 +45,18 @@ export function ReadingResult({
   const [aiInterpretation, setAiInterpretation] = useState<string | null>(null)
   const [aiLoading, setAiLoading] = useState(true)
   const [aiError, setAiError] = useState<string | null>(null)
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [imageLoading, setImageLoading] = useState(true)
+  const [imageError, setImageError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
     setAiLoading(true)
     setAiError(null)
     setAiInterpretation(null)
+    setImageLoading(true)
+    setImageError(null)
+    setImageUrl(null)
 
     getHexagramInterpretation(hexagram, question)
       .then((answer) => {
@@ -66,6 +73,23 @@ export function ReadingResult({
       })
       .finally(() => {
         if (!cancelled) setAiLoading(false)
+      })
+
+    generateHexagramImage(hexagram, question)
+      .then((url) => {
+        if (!cancelled) {
+          setImageUrl(url)
+          setImageError(null)
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setImageError(err instanceof Error ? err.message : String(err))
+          setImageUrl(null)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setImageLoading(false)
       })
 
     return () => {
@@ -121,8 +145,8 @@ export function ReadingResult({
         </p>
       </div>
 
-      {/* Question Analysis（AI 解读） */}
-      <div className="mb-8 rounded-lg border border-primary/20 bg-primary/5 p-6">
+      {/* Question Analysis（AI 解读 + 意境图） */}
+      <div className="mb-8 rounded-lg border border-primary/20 bg-primary/5 p-4 sm:p-6">
         <h3 className="mb-4 font-serif text-xl font-medium text-primary">
           Reading for Your Question
         </h3>
@@ -131,31 +155,73 @@ export function ReadingResult({
             {'"' + question + '"'}
           </p>
         </div>
-        {aiLoading ? (
-          <div className="flex items-center gap-3 py-4 text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin" />
-            <span>AI 正在解读卦象…</span>
-          </div>
-        ) : (
-          <>
-            {aiError != null && (
-              <p className="mb-3 text-sm text-amber-600 dark:text-amber-500">
-                未能获取 AI 解读（{aiError}），以下为默认解读：
-              </p>
+
+        <div className="flex flex-col gap-6 md:flex-row md:items-start">
+          <div className="min-w-0 flex-1">
+            {aiLoading ? (
+              <div className="flex items-center gap-3 py-4 text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>AI 正在解读卦象…</span>
+              </div>
+            ) : (
+              <>
+                {aiError != null && (
+                  <p className="mb-3 text-sm text-amber-600 dark:text-amber-500">
+                    未能获取 AI 解读（{aiError}），以下为默认解读：
+                  </p>
+                )}
+                {displayContent
+                  .split(/\n\n+/)
+                  .filter(Boolean)
+                  .map((para, i) => (
+                    <p
+                      key={i}
+                      className="mb-3 leading-relaxed text-foreground/80 last:mb-0"
+                    >
+                      {para}
+                    </p>
+                  ))}
+              </>
             )}
-            {displayContent
-              .split(/\n\n+/)
-              .filter(Boolean)
-              .map((para, i) => (
-                <p
-                  key={i}
-                  className="mb-3 leading-relaxed text-foreground/80 last:mb-0"
-                >
-                  {para}
-                </p>
-              ))}
-          </>
-        )}
+          </div>
+
+          <div className="mx-auto w-full max-w-[280px] shrink-0 md:mx-0 md:max-w-[220px] lg:max-w-[260px]">
+            <div className="overflow-hidden rounded-lg border border-border/60 bg-card/80 shadow-sm">
+              <div className="flex items-center gap-2 border-b border-border/50 px-3 py-2">
+                <ImageIcon className="h-4 w-4 text-primary/70" />
+                <span className="text-xs font-medium tracking-wide text-muted-foreground">
+                  卦象意境图
+                </span>
+              </div>
+              <div className="relative aspect-[2/3] w-full">
+                {imageLoading ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted/30 px-4 text-center">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary/60" />
+                    <span className="text-xs text-muted-foreground">
+                      正在生成意境图…
+                    </span>
+                  </div>
+                ) : imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={imageUrl}
+                    alt={`${hexagram.chineseName} 卦象意境图`}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-muted/20 px-3 text-center">
+                    <p className="text-xs text-muted-foreground">
+                      {imageError
+                        ? `意境图生成失败（${imageError}）`
+                        : '暂无意境图'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Disclaimer */}
