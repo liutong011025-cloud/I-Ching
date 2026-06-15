@@ -15,9 +15,9 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'I Ching Oracle - Ancient Wisdom for Modern Questions',
+  title: 'Yi-Guide - Ancient Wisdom for Modern Questions',
   description:
-    'Consult the ancient I Ching (Book of Changes) for guidance. Cast coins, receive your hexagram, and explore timeless wisdom.',
+    'Consult Yi-Guide for I Ching guidance. Cast coins, receive your hexagram, and explore timeless wisdom.',
 }
 
 export const viewport: Viewport = {
