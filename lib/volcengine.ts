@@ -1,14 +1,14 @@
 import type { Hexagram } from './hexagrams'
 
 const CLASSICAL_STYLE_PREFIX =
-  '中国古典水墨画风格，工笔与写意结合，宣纸质感，淡雅设色，意境深远，画面统一为传统国画美学，无现代元素，无文字水印。'
+  'Chinese classical ink wash painting style, combining meticulous gongbi and expressive xieyi brushwork, rice paper texture, subtle elegant colors, profound artistic atmosphere, unified traditional Chinese painting aesthetics, no modern elements, no text or watermark.'
 
 export function buildHexagramImagePrompt(hexagram: Hexagram, question: string): string {
   return `${CLASSICAL_STYLE_PREFIX}
-主题：易经第${hexagram.number}卦「${hexagram.chineseName}」（${hexagram.name}），${hexagram.subtitle}。
-卦象意象：${hexagram.image}
-求问者心中所问：「${question}」
-画面需将卦象象征元素与求问主题巧妙融合，可含山水、云气、卦爻符号、传统文化意象，竖构图适合手机屏幕欣赏。`
+Subject: I Ching Hexagram ${hexagram.number} — "${hexagram.chineseName}" (${hexagram.name}), ${hexagram.subtitle}.
+Hexagram imagery: ${hexagram.image}
+The seeker's question: "${question}"
+Blend symbolic hexagram elements with the question's theme. May include mountains, water, mist, yin-yang imagery, trigram symbols, and classical Chinese cultural motifs. Vertical portrait composition optimized for mobile viewing.`
 }
 
 export async function generateHexagramImage(
