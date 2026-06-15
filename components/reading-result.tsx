@@ -5,7 +5,9 @@ import type { Hexagram } from '@/lib/hexagrams'
 import { HexagramDisplay } from '@/components/hexagram-display'
 import { getHexagramInterpretation } from '@/lib/dify'
 import { generateHexagramImage } from '@/lib/volcengine'
-import { AlertTriangle, ImageIcon, Loader2 } from 'lucide-react'
+import { saveHexagramImage } from '@/lib/save-hexagram-image'
+import { Button } from '@/components/ui/button'
+import { AlertTriangle, Download, ImageIcon, Loader2 } from 'lucide-react'
 
 interface ReadingResultProps {
   hexagram: Hexagram
@@ -48,6 +50,8 @@ export function ReadingResult({
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [imageLoading, setImageLoading] = useState(true)
   const [imageError, setImageError] = useState<string | null>(null)
+  const [savingImage, setSavingImage] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -99,6 +103,20 @@ export function ReadingResult({
 
   const fallbackAnalysis = getQuestionAnalysisFallback(hexagram, question)
   const displayContent = aiInterpretation ?? fallbackAnalysis
+
+  const handleSaveImage = async () => {
+    if (!imageUrl || savingImage) return
+    setSavingImage(true)
+    setSaveError(null)
+    try {
+      const filename = `yi-guide-hexagram-${hexagram.number}-${hexagram.name.toLowerCase().replace(/\s+/g, '-')}.jpg`
+      await saveHexagramImage(imageUrl, filename)
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Save failed')
+    } finally {
+      setSavingImage(false)
+    }
+  }
 
   const ratingColor: Record<string, string> = {
     'Highly Auspicious': 'text-primary',
@@ -185,32 +203,54 @@ export function ReadingResult({
             )}
           </div>
 
-          <div className="mx-auto w-full max-w-[280px] shrink-0 md:mx-0 md:max-w-[220px] lg:max-w-[260px]">
-            <div className="overflow-hidden rounded-lg border border-border/60 bg-card/80 shadow-sm">
+          <div className="mx-auto w-full max-w-[320px] shrink-0 md:mx-0 md:max-w-[280px] lg:max-w-[300px]">
+            <div className="rounded-lg border border-border/60 bg-card/80 shadow-sm">
               <div className="flex items-center gap-2 border-b border-border/50 px-3 py-2">
                 <ImageIcon className="h-4 w-4 text-primary/70" />
                 <span className="text-xs font-medium tracking-wide text-muted-foreground">
                   Hexagram Vision
                 </span>
               </div>
-              <div className="relative aspect-[2/3] w-full">
+              <div className="p-2">
                 {imageLoading ? (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted/30 px-4 text-center">
+                  <div className="flex min-h-[240px] flex-col items-center justify-center gap-2 rounded-md bg-muted/30 px-4 py-8 text-center">
                     <Loader2 className="h-6 w-6 animate-spin text-primary/60" />
                     <span className="text-xs text-muted-foreground">
                       Generating vision…
                     </span>
                   </div>
                 ) : imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={imageUrl}
-                    alt={`${hexagram.name} hexagram vision`}
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                  />
+                  <div className="space-y-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={imageUrl}
+                      alt={`${hexagram.name} hexagram vision`}
+                      className="block h-auto w-full rounded-md"
+                      loading="lazy"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-10 w-full touch-manipulation"
+                      onClick={handleSaveImage}
+                      disabled={savingImage}
+                    >
+                      {savingImage ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4" />
+                      )}
+                      {savingImage ? 'Saving…' : 'Save Image'}
+                    </Button>
+                    {saveError != null && (
+                      <p className="text-center text-xs text-amber-600 dark:text-amber-500">
+                        {saveError}
+                      </p>
+                    )}
+                  </div>
                 ) : (
-                  <div className="absolute inset-0 flex items-center justify-center bg-muted/20 px-3 text-center">
+                  <div className="flex min-h-[160px] items-center justify-center rounded-md bg-muted/20 px-3 py-6 text-center">
                     <p className="text-xs text-muted-foreground">
                       {imageError
                         ? `Vision generation failed (${imageError})`
