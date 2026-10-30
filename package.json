@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test lib/coin-utils.test.mjs lib/casting-feedback.test.mjs && node --experimental-transform-types --import ./tests/register-typescript.mjs --test tests/backend.test.mjs tests/cache.test.mjs tests/jobs.test.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

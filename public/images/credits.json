@@ -1,0 +1,75 @@
+{
+  "verifiedAt": "2026-10-30",
+  "images": [
+    {
+      "file": "/images/hero-landscape.jpg",
+      "title": "Summer Mountains",
+      "titleZh": "夏山图",
+      "creator": "Attributed to Qu Ding (传屈鼎)",
+      "date": "ca. 1050",
+      "period": "Northern Song dynasty",
+      "medium": "Handscroll; ink and color on silk",
+      "institution": "The Metropolitan Museum of Art",
+      "accessionNumber": "1973.120.1",
+      "creditLine": "Ex coll.: C. C. Wang Family, Gift of The Dillon Fund, 1973",
+      "sourceUrl": "https://www.metmuseum.org/art/collection/search/39915",
+      "downloadUrl": "https://images.metmuseum.org/CRDImages/as/original/DP226465.jpg",
+      "metadataUrl": "https://collectionapi.metmuseum.org/public/collection/v1/objects/39915",
+      "license": "Public Domain / CC0 1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "rightsPolicyUrl": "https://www.metmuseum.org/hubs/open-access",
+      "width": 3951,
+      "height": 1580,
+      "suggestedCreditZh": "《夏山图》（局部），传屈鼎，约1050年。大都会艺术博物馆藏。公共领域。",
+      "suggestedCreditEn": "Summer Mountains (detail), attributed to Qu Ding, ca. 1050. The Metropolitan Museum of Art. Public Domain.",
+      "altZh": "金褐色绢本上的水墨山水，层峦、林木与河流沿手卷展开",
+      "altEn": "An ink-and-color landscape on golden-brown silk, with layered mountains, trees, and a river",
+      "localEdits": "None. If displayed with CSS cropping, identify the image as a detail."
+    },
+    {
+      "file": "/images/yijing-book.jpg",
+      "title": "周易 3巻本義序例1巻 / (宋)朱熹本義 ; (日本)林子[點]",
+      "titleEn": "Zhouyi, with Zhu Xi's original meaning commentary; an annotated copy in the Mori Ogai Collection",
+      "institution": "General Library, The University of Tokyo",
+      "collection": "Image Database of Annotated Books in the Mori Ogai Collection",
+      "shelfmark": "鴎B60:1112",
+      "imageSequence": "[3]",
+      "sourceUrl": "https://da.dl.itc.u-tokyo.ac.jp/portal/en/assets/1fb321f5-a640-4592-9553-3d5a052e8130",
+      "manifestUrl": "https://da.dl.itc.u-tokyo.ac.jp/portal/repo/iiif/1fb321f5-a640-4592-9553-3d5a052e8130/manifest",
+      "downloadUrl": "https://iiif.dl.itc.u-tokyo.ac.jp/iiif/ogai/B60_1112/0003.tif/full/1800,/0/default.jpg",
+      "license": "Public Domain; free commercial and noncommercial reuse under the library's reuse policy",
+      "rightsPolicyUrl": "https://www.lib.u-tokyo.ac.jp/ja/library/general/reuse",
+      "attributionRequest": "The library asks reusers to identify the holding institution and disclose modifications such as cropping. The item metadata is CC0; the image is marked Public Domain.",
+      "width": 1800,
+      "height": 1387,
+      "suggestedCreditZh": "《周易本义》书页（局部），东京大学综合图书馆鴎外文库藏。公共领域。",
+      "suggestedCreditEn": "Zhouyi Benyi (detail). Image courtesy of the University of Tokyo General Library, Mori Ogai Collection. Public Domain.",
+      "altZh": "《周易本义》的泛黄书页，竖排汉字间保留读者的红色圈点与注记",
+      "altEn": "Aged pages of a Zhouyi commentary, with vertical Chinese text and a reader's red annotations",
+      "localEdits": "Downloaded an institution-provided 1800-pixel derivative. No other local edits. If displayed with CSS cropping, identify the image as a detail."
+    }
+  ],
+  "contentSources": [
+    {
+      "title": "Chinese Philosophy of Change (Yijing)",
+      "publisher": "Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/chinese-change/",
+      "updated": "2023-09-18",
+      "supports": ["Yijing as a layered Chinese classic", "eight trigrams and sixty-four hexagrams", "yin as a broken line and yang as a whole line", "three-line trigrams and six-line hexagrams", "interpretive traditions and reflection"]
+    },
+    {
+      "title": "Chinese Cultural Studies: Yi Jing I Ching (The Classic of Changes)",
+      "publisher": "Columbia University, CCNMTL-hosted teaching materials",
+      "url": "https://ccnmtl.columbia.edu/services/dropoff/china_civ_temp/week02/pdfs/iching.pdf",
+      "supports": ["three coins per cast", "heads valued at 3 and tails at 2", "six casts recorded from the bottom up", "line totals 6, 7, 8 and 9", "6 and 9 as moving lines"],
+      "note": "Use the method description on PDF pages 1-2 as a historical teaching reference. Do not reproduce the modern English translation contained in the remainder of the PDF."
+    },
+    {
+      "title": "Zhou yi zhu shu : Shi san juan",
+      "publisher": "Library of Congress / National Library of China",
+      "url": "https://www.loc.gov/item/2021666491/",
+      "supports": ["a historical Zhouyi printed edition", "64 hexagrams and six lines per hexagram", "commentary tradition including Wang Bi and Kong Yingda"],
+      "note": "Bibliographic source only. No images downloaded from this item."
+    }
+  ]
+}

@@ -1,138 +1,50 @@
 import { NextResponse } from 'next/server'
 import { buildHexagramImagePrompt } from '@/lib/volcengine'
-import type { Hexagram } from '@/lib/hexagrams'
+import type { AiLanguage } from '@/lib/dify'
+import { errorResponse, fetchProvider, isAllowedImageUrl, parseReading, providerError, readJson, ServiceError } from '../_lib/ai'
 
-const ARK_API_BASE =
-  process.env.ARK_API_BASE || 'https://ark.cn-beijing.volces.com/api/v3'
-const ARK_API_KEY = process.env.ARK_API_KEY || ''
+export const runtime = 'nodejs'
+export const maxDuration = 120
 
-const FALLBACK_MODELS = [
-  'doubao-seedream-5-0-lite-260128',
-  'doubao-seedream-5-0-260128',
-  'doubao-seedream-4-0-250828',
-]
-
-function getModelsToTry(): string[] {
-  const preferred = process.env.SEEDREAM_MODEL_ID?.trim()
-  if (preferred) {
-    return [preferred, ...FALLBACK_MODELS.filter((m) => m !== preferred)]
-  }
-  return FALLBACK_MODELS
-}
-
-interface GenerateImageRequest {
-  hexagramNumber: number
-  hexagramName: string
-  chineseName: string
-  subtitle: string
-  image: string
-  question: string
-}
-
-interface ArkImageResponse {
-  data?: { url?: string }[]
-  error?: { message?: string; code?: string }
-}
-
-function isModelNotActivated(message: string): boolean {
-  return /has not activated the model/i.test(message)
-}
-
-async function requestImage(
-  model: string,
-  prompt: string
-): Promise<{ ok: true; url: string } | { ok: false; status: number; message: string }> {
-  const res = await fetch(`${ARK_API_BASE}/images/generations`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${ARK_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model,
-      prompt,
-      size: '2K',
-      sequential_image_generation: 'disabled',
-      response_format: 'url',
-      stream: false,
-      watermark: false,
-    }),
-  })
-
-  const data = (await res.json()) as ArkImageResponse
-  const message = data.error?.message || `Request failed with status ${res.status}`
-
-  if (!res.ok) {
-    return { ok: false, status: res.status, message }
-  }
-
-  const url = data.data?.[0]?.url
-  if (!url) {
-    return { ok: false, status: 502, message: 'No image URL returned' }
-  }
-
-  return { ok: true, url }
-}
+// Retain models already activated by existing deployments.
+const FALLBACK_MODELS = ['doubao-seedream-5-0-lite-260128', 'doubao-seedream-5-0-260128', 'doubao-seedream-4-0-250828']
 
 export async function POST(request: Request) {
-  if (!ARK_API_KEY) {
-    return NextResponse.json(
-      { error: 'ARK_API_KEY is not configured in .env.local' },
-      { status: 500 }
-    )
-  }
-
-  let body: GenerateImageRequest
+  let language: AiLanguage = 'zh'
   try {
-    body = (await request.json()) as GenerateImageRequest
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
-  }
+    const body = await readJson(request)
+    if (body.language === 'en') language = 'en'
+    const { hexagram, question } = parseReading(body)
+    const key = process.env.ARK_API_KEY?.trim()
+    const base = (process.env.ARK_API_BASE?.trim() || 'https://ark.cn-beijing.volces.com/api/v3').replace(/\/+$/, '')
+    if (!key) throw new ServiceError('NOT_CONFIGURED', 503)
+    const preferred = process.env.SEEDREAM_MODEL_ID?.trim()
+    const models = [...new Set([...(preferred ? [preferred] : []), ...FALLBACK_MODELS])]
+    const prompt = buildHexagramImagePrompt(hexagram, question, language)
+    const deadline = Date.now() + 100_000
 
-  const { hexagramNumber, hexagramName, chineseName, subtitle, image, question } =
-    body
-
-  if (!hexagramNumber || !chineseName || !question?.trim()) {
-    return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 })
-  }
-
-  const hexagram = {
-    number: hexagramNumber,
-    name: hexagramName,
-    chineseName,
-    subtitle,
-    image,
-  } as Pick<Hexagram, 'number' | 'name' | 'chineseName' | 'subtitle' | 'image'>
-
-  const prompt = buildHexagramImagePrompt(hexagram as Hexagram, question.trim())
-  const models = getModelsToTry()
-  const errors: string[] = []
-
-  try {
     for (const model of models) {
-      const result = await requestImage(model, prompt)
-
-      if (result.ok) {
-        return NextResponse.json({ url: result.url })
+      const response = await fetchProvider(`${base}/images/generations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+        body: JSON.stringify({
+          model, prompt, size: '2K', sequential_image_generation: 'disabled',
+          response_format: 'url', stream: false, watermark: false,
+        }),
+      }, { signal: request.signal, timeoutMs: 45_000, deadline })
+      const data = await response.json().catch(() => null)
+      if (!response.ok) {
+        const code = typeof data?.error?.code === 'string' ? data.error.code : ''
+        const message = typeof data?.error?.message === 'string' ? data.error.message : ''
+        // Do not switch models for authentication, safety or other request errors.
+        if (/has not activated the model|model.{0,30}not (?:activated|found|available)/i.test(message) ||
+            /ModelNotOpen|ModelNotFound|ModelNotActivated/i.test(code)) continue
+        throw providerError(response.status, code)
       }
-
-      errors.push(`[${model}] ${result.message}`)
-
-      if (!isModelNotActivated(result.message)) {
-        return NextResponse.json({ error: result.message }, { status: result.status })
-      }
+      const url: unknown = data?.data?.[0]?.url
+      if (!isAllowedImageUrl(url)) throw new ServiceError('INVALID_RESPONSE', 502, true)
+      return NextResponse.json({ url }, { headers: { 'Cache-Control': 'no-store' } })
     }
-
-    return NextResponse.json(
-      {
-        error:
-          'No activated Seedream model found. Please activate a model in the Ark Console. ' +
-          errors.join(' | '),
-      },
-      { status: 403 }
-    )
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Image generation failed'
-    return NextResponse.json({ error: msg }, { status: 500 })
-  }
+    throw new ServiceError('MODEL_UNAVAILABLE', 503)
+  } catch (error) { return errorResponse(error, language) }
 }
