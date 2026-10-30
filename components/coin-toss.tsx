@@ -127,6 +127,7 @@ export function CoinToss({ round, onResult, mode, language = 'zh' }: CoinTossPro
           </>
           return mode === 'manual' ? (
             <button key={index} type="button" className={className} aria-label={label}
+              data-tour-manual-coin={index === 0 ? "" : undefined}
               ref={index === 0 ? firstManualCoin : undefined}
               disabled={confirmed} onClick={() => updateManualCoin(index)}>{content}</button>
           ) : (
@@ -137,11 +138,11 @@ export function CoinToss({ round, onResult, mode, language = 'zh' }: CoinTossPro
       </div>
       <p className="coin-summary" aria-live="polite" aria-atomic="true">{summary}</p>
       {mode === 'auto' && total === null ? (
-        <button ref={primaryAction} type="button" className="primary-button" onClick={flipCoins} disabled={flipping}>
+        <button ref={primaryAction} data-tour-cast type="button" className="primary-button" onClick={flipCoins} disabled={flipping}>
           {flipping ? zh ? '投掷中…' : 'Casting…' : zh ? '投掷钱币' : 'Cast the coins'}
         </button>
       ) : (
-        <button ref={primaryAction} type="button" className="primary-button" onClick={confirmResult} disabled={total === null || confirmed}>
+        <button ref={primaryAction} data-tour-cast type="button" className="primary-button" onClick={confirmResult} disabled={total === null || confirmed}>
           {confirmed ? zh ? '已记录' : 'Recorded' : round === 6
             ? zh ? '确认，查看卦象' : 'Confirm & reveal hexagram'
             : zh ? '确认，记录此爻' : 'Confirm this line'}
