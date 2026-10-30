@@ -21,9 +21,9 @@ export function SiteHeader() {
   return <>
     <a className="skip-link" href="#main">{zh ? '跳至主要内容' : 'Skip to content'}</a>
     <header className="site-header">
-      <Link href="/" className="brand" aria-label={zh ? '易经 E-Guide 首页' : 'E-Guide home'} onClick={() => setOpen(false)}>
+      <Link href="/" className="brand" aria-label={zh ? '易引 E-Guide 首页' : 'E-Guide home'} onClick={() => setOpen(false)}>
         <img src="/brand/logo-mark.svg" width="44" height="44" alt="" />
-        <span className="brand-name">易经<span>E–GUIDE</span></span>
+        <span className="brand-name">易引<span>E–GUIDE</span></span>
       </Link>
       <nav className="desktop-nav" aria-label={zh ? '主导航' : 'Main navigation'}>
         <Link href="/" aria-current={pathname === '/' ? 'page' : undefined}>{zh ? '关于易经' : 'About the I Ching'}</Link>
@@ -47,7 +47,7 @@ export function SiteHeader() {
 export function SiteFooter() {
   const zh = useLanguage().language === 'zh'
   return <footer className="site-footer">
-    <div className="footer-top"><Link className="footer-brand" href="/">易经 <span>E–GUIDE</span></Link><p>{zh ? '古老的智慧，当下的思考。' : 'An ancient text. A present perspective.'}</p><Link className="text-link" href="/consult">{zh ? '开始探索' : 'Begin your reading'}<ArrowUpRight size={18} /></Link></div>
+    <div className="footer-top"><Link className="footer-brand" href="/">易引 <span>E–GUIDE</span></Link><p>{zh ? '古老的智慧，当下的思考。' : 'An ancient text. A present perspective.'}</p><Link className="text-link" href="/consult">{zh ? '开始探索' : 'Begin your reading'}<ArrowUpRight size={18} /></Link></div>
     <div className="footer-bottom"><span>© {new Date().getFullYear()} E–Guide</span><p>{zh ? '供传统文化体验、娱乐与个人思考。随机卦象不具预测效力，不作为重大决策依据。' : 'For cultural exploration, entertainment and reflection. Random readings do not predict events or replace professional advice.'}</p><a href="/#sources">{zh ? '资料与图像来源' : 'Sources & image credits'}</a></div>
   </footer>
 }

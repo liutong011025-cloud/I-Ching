@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { ArrowLeft, ArrowUpRight, Check, CircleHelp, Coins, Hand, RotateCcw } from 'lucide-react'
 import { CoinToss } from './coin-toss'
+import { ReadingTour } from './reading-tour'
 import { LineProgress } from './line-progress'
 import { ReadingResult } from './reading-result'
 import { useLanguage } from './language-provider'
@@ -52,8 +53,8 @@ export function IChingOracle() {
   })
   const examples = zh?['面对新的学习任务，我可以先关注什么？','如何更好地理解我与他人的关系？','此刻，我可以做出怎样的调整？']:['What could I focus on as I begin a new project?','How might I better understand this relationship?','What could I approach differently right now?']
   return <main id="main" className="reading-room">
-    <div className="reading-topline"><span className="eyebrow">{zh?'易经占卜 / THE READING ROOM':'THE READING ROOM / 易经'}</span>{step!=='question'&&<button className="quiet-button" onClick={()=>setResetPending(true)}><RotateCcw size={15}/>{zh?'重新开始':'Start over'}</button>}</div>
-    <ol className="reading-steps" aria-label={zh?'起卦流程':'Reading progress'}>{steps.map((label,i)=><li key={i} className={i===stepIndex?'active':i<stepIndex?'complete':''} aria-current={i===stepIndex?'step':undefined}><span>{i<stepIndex?<Check size={13}/>:String(i+1).padStart(2,'0')}</span><span>{label}</span></li>)}</ol>
+    <div className="reading-topline"><span className="eyebrow">{zh?'易经占卜 / THE READING ROOM':'THE READING ROOM / 易经'}</span><ReadingTour language={language} ready={ready}/>{step!=='question'&&<button className="quiet-button" onClick={()=>setResetPending(true)}><RotateCcw size={15}/>{zh?'重新开始':'Start over'}</button>}</div>
+    <ol className="reading-steps" aria-label={zh?'起卦流程':'Reading progress'}>{steps.map((label,i)=><li key={i} data-tour-step={i} className={i===stepIndex?'active':i<stepIndex?'complete':''} aria-current={i===stepIndex?'step':undefined}><span>{i<stepIndex?<Check size={13}/>:String(i+1).padStart(2,'0')}</span><span>{label}</span></li>)}</ol>
     {resetPending&&<aside className="reset-confirm" role="alert"><p>{zh?'重新开始会清空本轮问题和已记录的爻。':'Starting over clears your current question and lines.'}</p><div><button className="text-button" onClick={()=>setResetPending(false)}>{zh?'继续本轮':'Keep this reading'}</button><button className="primary-button" onClick={reset}>{zh?'确认重新开始':'Start a new reading'}</button></div></aside>}
     {step==='question'&&<section className="question-layout">
       <div className="question-intro"><p className="eyebrow">01 / {zh?'把注意力，带回当下':'A MOMENT TO REFLECT'}</p><h1>{zh?<>此刻，<br/>你在思考什么？</>:<>What is on<br/><em>your mind?</em></>}</h1><p>{zh?'写下一个具体的问题。\n不必急着寻找答案，先给自己一个重新审视它的机会。':'Begin with a specific question.\nTake a moment to see your situation from another angle.'}</p><div className="question-seal" aria-hidden="true">一<br/>问<br/>一<br/>念</div></div>
