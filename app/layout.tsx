@@ -1,23 +1,14 @@
 import type { Metadata, Viewport } from 'next'
-import { Cormorant_Garamond, Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { LanguageProvider } from '@/components/language-provider'
+import { SiteHeader, SiteFooter } from '@/components/site-shell'
 import './globals.css'
 
-const cormorant = Cormorant_Garamond({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
-  variable: '--font-serif',
-})
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-sans',
-})
-
 export const metadata: Metadata = {
-  title: 'Yi-Guide - Ancient Wisdom for Modern Questions',
+  title: '易引 E-Guide · The Book of Changes',
   description:
-    'Consult Yi-Guide for I Ching guidance. Cast coins, receive your hexagram, and explore timeless wisdom.',
+    '走近《易经》的变化智慧，探索八卦，体验三枚钱币起卦。Explore the Book of Changes, its symbols, and a thoughtful three-coin reading.',
+  icons: { icon: '/brand/logo-mark.svg', apple: '/brand/logo-mark.svg' },
 }
 
 export const viewport: Viewport = {
@@ -30,11 +21,9 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${inter.variable} ${cormorant.variable} font-sans antialiased`}
-      >
-        {children}
+    <html lang="zh-CN" data-scroll-behavior="smooth">
+      <body>
+        <LanguageProvider><SiteHeader />{children}<SiteFooter /></LanguageProvider>
         <Analytics />
       </body>
     </html>

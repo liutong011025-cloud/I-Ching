@@ -1,217 +1,155 @@
 'use client'
 
-import { useState, useCallback } from 'react'
-import { Button } from '@/components/ui/button'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { getLineType } from '@/lib/hexagrams'
+import { startCastingFeedback } from '@/lib/casting-feedback'
+import { coinTotal, emptyCoins, toggleCoin, tossThreeCoins, type CoinSelection, type CompleteCoins } from '@/lib/coin-utils'
 
 interface CoinTossProps {
   round: number
   onResult: (value: number, coins: number[]) => void
   mode: 'auto' | 'manual'
+  language?: 'zh' | 'en'
 }
 
-function CoinFace({ value, flipping }: { value: number; flipping: boolean }) {
-  const isHeads = value === 3
-  return (
-    <div
-      className={`relative flex h-16 w-16 items-center justify-center rounded-full border-2 border-primary/30 ${
-        isHeads
-          ? 'bg-primary/20 text-primary'
-          : 'bg-muted text-muted-foreground'
-      } ${flipping ? 'animate-bounce' : ''} transition-all duration-300`}
-    >
-      <span className="font-serif text-lg font-bold">
-        {isHeads ? 'H' : 'T'}
-      </span>
-      <span className="absolute -bottom-5 text-xs text-muted-foreground">
-        {isHeads ? '3' : '2'}
-      </span>
-    </div>
-  )
+const chineseLineNames: Record<number, string> = {
+  6: '老阴 · 动爻', 7: '少阳', 8: '少阴', 9: '老阳 · 动爻',
 }
 
-export function CoinToss({ round, onResult, mode }: CoinTossProps) {
-  const [coins, setCoins] = useState<number[] | null>(null)
+// Preserve input intent when a confirmed line remounts this component.
+let lastInputMethod: 'keyboard' | 'pointer' | 'unknown' = 'unknown'
+
+export function CoinToss({ round, onResult, mode, language = 'zh' }: CoinTossProps) {
+  const zh = language === 'zh'
+  const [coins, setCoins] = useState<CoinSelection>(emptyCoins)
   const [flipping, setFlipping] = useState(false)
-  const [manualCoins, setManualCoins] = useState<number[]>([])
+  const [confirmed, setConfirmed] = useState(false)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const stopFeedback = useRef<() => void>(() => {})
+  const busy = useRef(false)
+  const primaryAction = useRef<HTMLButtonElement>(null)
+  const firstManualCoin = useRef<HTMLButtonElement>(null)
+  const total = coinTotal(coins)
+
+  useEffect(() => {
+    if (timer.current !== null) clearTimeout(timer.current)
+    timer.current = null
+    stopFeedback.current()
+    busy.current = false
+    setCoins(emptyCoins())
+    setFlipping(false)
+    setConfirmed(false)
+    if (round > 1 && lastInputMethod === 'keyboard') {
+      const nextControl = mode === 'manual' ? firstManualCoin.current : primaryAction.current
+      nextControl?.focus({ preventScroll: true })
+    }
+    return () => {
+      if (timer.current !== null) clearTimeout(timer.current)
+      timer.current = null
+      stopFeedback.current()
+    }
+  }, [round, mode])
+
+  useEffect(() => {
+    if (mode !== 'auto' || flipping || total === null || lastInputMethod !== 'keyboard') return
+    // Some browsers blur a button while it is disabled for the toss animation.
+    // Restore it only if the visitor has not moved focus to another control.
+    if (document.activeElement === document.body || document.activeElement === primaryAction.current) {
+      primaryAction.current?.focus({ preventScroll: true })
+    }
+  }, [mode, flipping, total])
 
   const flipCoins = useCallback(() => {
+    if (busy.current) return
+    busy.current = true
+    stopFeedback.current()
+    stopFeedback.current = startCastingFeedback({
+      classList: document.documentElement.classList,
+      reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+      vibrate: typeof navigator.vibrate === 'function' ? navigator.vibrate.bind(navigator) : undefined,
+    })
     setFlipping(true)
-    setCoins(null)
-
-    setTimeout(() => {
-      const newCoins = [
-        Math.random() < 0.5 ? 3 : 2,
-        Math.random() < 0.5 ? 3 : 2,
-        Math.random() < 0.5 ? 3 : 2,
-      ]
-      setCoins(newCoins)
+    setCoins(emptyCoins())
+    timer.current = setTimeout(() => {
+      stopFeedback.current()
+      setCoins(tossThreeCoins())
       setFlipping(false)
-    }, 800)
+      busy.current = false
+      timer.current = null
+    }, 750)
   }, [])
 
-  const confirmResult = useCallback(() => {
-    if (coins) {
-      const sum = coins[0] + coins[1] + coins[2]
-      onResult(sum, coins)
-      setCoins(null)
-    }
-  }, [coins, onResult])
-
-  const toggleManualCoin = (index: number) => {
-    const newCoins = [...manualCoins]
-    if (newCoins[index] === undefined) {
-      newCoins[index] = 3
-    } else {
-      newCoins[index] = newCoins[index] === 3 ? 2 : 3
-    }
-    setManualCoins(newCoins)
+  const confirmResult = () => {
+    if (busy.current || total === null) return
+    busy.current = true
+    setConfirmed(true)
+    onResult(total, [...(coins as CompleteCoins)])
   }
 
-  const confirmManualResult = () => {
-    if (manualCoins.length === 3 && manualCoins.every((c) => c !== undefined)) {
-      const sum = manualCoins[0] + manualCoins[1] + manualCoins[2]
-      onResult(sum, manualCoins)
-      setManualCoins([])
-    }
+  const updateManualCoin = (index: number) => {
+    if (busy.current) return
+    setCoins((current) => toggleCoin(current, index))
   }
 
-  const lineValue = coins
-    ? coins[0] + coins[1] + coins[2]
-    : manualCoins.length === 3 && manualCoins.every((c) => c !== undefined)
-      ? manualCoins[0] + manualCoins[1] + manualCoins[2]
-      : null
+  const summary = total === null
+    ? flipping
+      ? zh ? '钱币落定后，即可查看本爻。' : 'Let the coins settle to reveal this line.'
+      : mode === 'manual'
+        ? zh ? '请设置三枚钱币的正反面。' : 'Set the face of all three coins.'
+        : zh ? '三枚钱币，一次成爻。' : 'Three coins. One line at a time.'
+    : zh ? `合计 ${total} · ${chineseLineNames[total]}` : `Total ${total} · ${getLineType(total).label}`
 
   return (
-    <div className="flex flex-col items-center gap-6">
-      <div className="text-center">
-        <p className="font-serif text-2xl font-light text-foreground">
-          {'Line ' + round + ' of 6'}
-        </p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {round <= 3 ? 'Lower Trigram' : 'Upper Trigram'}
-        </p>
+    <div className="coin-stage" aria-busy={flipping}
+      onPointerDownCapture={() => { lastInputMethod = 'pointer' }}
+      onKeyDownCapture={() => { lastInputMethod = 'keyboard' }}>
+      <div className="coin-round">
+        <span>{zh ? `第 ${round} 爻 / 共 6 爻` : `Line ${round} of 6`}</span>
+        <p>{round <= 3
+          ? zh ? '下卦 · 从初爻开始，自下而上' : 'Lower trigram · building from the bottom'
+          : zh ? '上卦 · 继续完成上方三爻' : 'Upper trigram · completing the upper three lines'}</p>
       </div>
-
-      {mode === 'auto' ? (
-        <>
-          <div className="flex items-center gap-6">
-            {flipping ? (
-              <>
-                <div className="flex h-16 w-16 animate-bounce items-center justify-center rounded-full border-2 border-primary/20 bg-muted">
-                  <span className="text-lg text-muted-foreground">?</span>
-                </div>
-                <div
-                  className="flex h-16 w-16 animate-bounce items-center justify-center rounded-full border-2 border-primary/20 bg-muted"
-                  style={{ animationDelay: '100ms' }}
-                >
-                  <span className="text-lg text-muted-foreground">?</span>
-                </div>
-                <div
-                  className="flex h-16 w-16 animate-bounce items-center justify-center rounded-full border-2 border-primary/20 bg-muted"
-                  style={{ animationDelay: '200ms' }}
-                >
-                  <span className="text-lg text-muted-foreground">?</span>
-                </div>
-              </>
-            ) : coins ? (
-              coins.map((c, i) => (
-                <CoinFace key={i} value={c} flipping={false} />
-              ))
-            ) : (
-              <>
-                <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed border-border bg-muted/50">
-                  <span className="text-sm text-muted-foreground">1</span>
-                </div>
-                <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed border-border bg-muted/50">
-                  <span className="text-sm text-muted-foreground">2</span>
-                </div>
-                <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed border-border bg-muted/50">
-                  <span className="text-sm text-muted-foreground">3</span>
-                </div>
-              </>
-            )}
-          </div>
-
-          {coins && lineValue !== null && (
-            <div className="animate-in fade-in text-center">
-              <p className="text-sm text-muted-foreground">
-                {'Sum: ' + lineValue + ' — ' + getLineType(lineValue).label}
-              </p>
-            </div>
-          )}
-
-          <div className="flex gap-3">
-            {!coins ? (
-              <Button
-                onClick={flipCoins}
-                disabled={flipping}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
-                size="lg"
-              >
-                {flipping ? 'Tossing...' : 'Toss Coins'}
-              </Button>
-            ) : (
-              <Button
-                onClick={confirmResult}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
-                size="lg"
-              >
-                Confirm & Continue
-              </Button>
-            )}
-          </div>
-        </>
+      {mode === 'manual' && <p className="coin-help">{zh
+        ? '投掷三枚实体钱币，再点击下方币面录入。再次点击可切换。'
+        : 'Toss three physical coins, then tap each face below. Tap again to switch.'}</p>}
+      <div className="coin-tray" role="group" aria-label={zh ? '三枚钱币' : 'Three coins'}>
+        {coins.map((value, index) => {
+          const face = value === 3 ? 'heads' : value === 2 ? 'tails' : 'empty'
+          const faceText = value === 3 ? zh ? '正面，3 分' : 'Heads, 3 points'
+            : value === 2 ? zh ? '反面，2 分' : 'Tails, 2 points' : zh ? '尚未设置' : 'not set'
+          const label = zh
+            ? `第 ${index + 1} 枚钱币：${faceText}${mode === 'manual' ? '，点击切换' : ''}`
+            : `Coin ${index + 1}: ${faceText}${mode === 'manual' ? ', tap to switch' : ''}`
+          const className = `coin-face is-${face}${flipping ? ' is-flipping' : ''}`
+          const content = <>
+            <span aria-hidden="true">{flipping ? '易' : value === 3 ? zh ? '阳' : 'H' : value === 2 ? zh ? '阴' : 'T' : '?'}</span>
+            <small aria-hidden="true">{value === 3 ? zh ? '正面 · 3' : 'HEADS · 3' : value === 2 ? zh ? '反面 · 2' : 'TAILS · 2' : `0${index + 1}`}</small>
+          </>
+          return mode === 'manual' ? (
+            <button key={index} type="button" className={className} aria-label={label}
+              data-tour-manual-coin={index === 0 ? "" : undefined}
+              ref={index === 0 ? firstManualCoin : undefined}
+              disabled={confirmed} onClick={() => updateManualCoin(index)}>{content}</button>
+          ) : (
+            <div key={index} className={className} role="img" aria-label={label}
+              style={{ animationDelay: `${index * 90}ms` }}>{content}</div>
+          )
+        })}
+      </div>
+      <p className="coin-summary" aria-live="polite" aria-atomic="true">{summary}</p>
+      {mode === 'auto' && total === null ? (
+        <button ref={primaryAction} data-tour-cast type="button" className="primary-button" onClick={flipCoins} disabled={flipping}>
+          {flipping ? zh ? '投掷中…' : 'Casting…' : zh ? '投掷钱币' : 'Cast the coins'}
+        </button>
       ) : (
-        <>
-          <p className="text-center text-sm text-muted-foreground">
-            Tap each coin to toggle between Heads (H=3) and Tails (T=2)
-          </p>
-          <div className="flex items-center gap-6">
-            {[0, 1, 2].map((i) => (
-              <button
-                key={i}
-                onClick={() => toggleManualCoin(i)}
-                className={`flex h-16 w-16 items-center justify-center rounded-full border-2 transition-all ${
-                  manualCoins[i] === 3
-                    ? 'border-primary/30 bg-primary/20 text-primary'
-                    : manualCoins[i] === 2
-                      ? 'border-primary/30 bg-muted text-muted-foreground'
-                      : 'border-dashed border-border bg-muted/50 text-muted-foreground'
-                }`}
-              >
-                <span className="font-serif text-lg font-bold">
-                  {manualCoins[i] === 3
-                    ? 'H'
-                    : manualCoins[i] === 2
-                      ? 'T'
-                      : '?'}
-                </span>
-              </button>
-            ))}
-          </div>
-
-          {lineValue !== null && (
-            <div className="animate-in fade-in text-center">
-              <p className="text-sm text-muted-foreground">
-                {'Sum: ' + lineValue + ' — ' + getLineType(lineValue).label}
-              </p>
-            </div>
-          )}
-
-          <Button
-            onClick={confirmManualResult}
-            disabled={
-              manualCoins.length !== 3 ||
-              !manualCoins.every((c) => c !== undefined)
-            }
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
-            size="lg"
-          >
-            Confirm & Continue
-          </Button>
-        </>
+        <button ref={primaryAction} data-tour-cast type="button" className="primary-button" onClick={confirmResult} disabled={total === null || confirmed}>
+          {confirmed ? zh ? '已记录' : 'Recorded' : round === 6
+            ? zh ? '确认，查看卦象' : 'Confirm & reveal hexagram'
+            : zh ? '确认，记录此爻' : 'Confirm this line'}
+        </button>
       )}
+      <p className="coin-help">{zh ? '正面记 3，反面记 2。核对后确认，进入下一爻。'
+        : 'Heads = 3, tails = 2. Confirm each result to continue.'}</p>
     </div>
   )
 }

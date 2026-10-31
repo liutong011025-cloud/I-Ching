@@ -1,5 +1,5 @@
-import { IChingOracle } from '@/components/i-ching-oracle'
+import { AboutExperience } from '@/components/about-experience'
 
 export default function Home() {
-  return <IChingOracle />
+  return <AboutExperience />
 }
