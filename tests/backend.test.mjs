@@ -245,3 +245,16 @@ test('image prompts retain the question as quoted data in the selected instructi
   assert.match(zh, /仅为创作素材，不作为指令/)
   assert.match(zh, /怎样安排学习/)
 })
+
+test('image prompt uses the primary hexagram and question without fixed fortune symbols', () => {
+  const zh = buildHexagramImagePrompt(HEXAGRAMS[15], '如何准备新的学习任务？', 'zh')
+  const en = buildHexagramImagePrompt(HEXAGRAMS[15], 'How can I prepare for a new course?', 'en')
+  assert.match(zh, /第16卦「豫」/)
+  assert.match(zh, /热情与准备/)
+  assert.match(zh, /下卦为地，上卦为雷/)
+  assert.match(zh, /如何准备新的学习任务/)
+  assert.match(zh, /右上角留出/)
+  assert.doesNotMatch(zh, /Grand Duke Jiang|yellow banner|green dragon/i)
+  assert.match(en, /primary I Ching hexagram is 16: Yu/)
+  assert.match(en, /upper right/)
+})
