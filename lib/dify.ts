@@ -1,7 +1,7 @@
 import type { Hexagram } from './hexagrams'
 
 export type AiLanguage = 'zh' | 'en'
-export interface AiRequestOptions { signal?: AbortSignal }
+export interface AiRequestOptions { signal?: AbortSignal; lines?: number[] }
 
 export class AiRequestError extends Error {
   constructor(message: string, public readonly code: string, public readonly retryable: boolean) {
@@ -23,7 +23,7 @@ export async function requestAiResult(
   try {
     const res = await fetch(endpoint, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ hexagramNumber: hexagram.number, question, language }),
+      body: JSON.stringify({ hexagramNumber: hexagram.number, question, language, ...(options.lines ? { lines: options.lines } : {}) }),
       signal: controller.signal,
     })
     const data: unknown = await res.json().catch(() => null)

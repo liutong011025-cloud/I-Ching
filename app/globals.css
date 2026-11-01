@@ -1511,6 +1511,32 @@ button {
   color: var(--gold);
 }
 
+.reading-guide {
+  margin-top: 36px;
+  padding: clamp(20px, 3vw, 30px);
+  border: 1px solid var(--border);
+  background: #1e241c;
+  color: #d9ddcf;
+  line-height: 1.8;
+  font-size: 15px;
+}
+
+.reading-guide h3 {
+  color: var(--foreground);
+  font-size: 21px;
+  font-weight: 500;
+  margin: 18px 0 10px;
+}
+
+.reading-guide ol {
+  padding-left: 1.4em;
+  margin: 14px 0;
+}
+
+.reading-guide li { margin-bottom: 10px; padding-left: 4px; }
+.reading-guide strong { color: var(--gold); font-weight: 500; }
+.reading-guide .small-note { margin-top: 18px; }
+
 .related-hexagram {
   margin-top: 40px;
   padding-top: 26px;

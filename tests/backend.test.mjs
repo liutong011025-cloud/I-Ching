@@ -84,6 +84,40 @@ test('Dify runs on the server, uses trusted hexagram data and requests English',
   assert.equal(response.headers.get('cache-control'), 'no-store')
 })
 
+test('Dify receives the verified moving lines and derived related hexagram', async () => {
+  process.env.DIFY_API_KEY = fakeKey
+  let query = ''
+  globalThis.fetch = async (_url, init) => { query = JSON.parse(init.body).query; return reply({ answer: '思考' }) }
+  const response = await interpret(request({ hexagramNumber: 16, question: '如何面对新的挑战？', language: 'zh', lines: [6, 6, 8, 7, 8, 6], related: { number: 1 } }))
+  assert.equal(response.status, 200)
+  assert.match(query, /"position":1,"value":6/)
+  assert.match(query, /"position":2,"value":6/)
+  assert.match(query, /"position":6,"value":6/)
+  assert.match(query, /"number":38,"name":"Kui","chineseName":"睽"/)
+  assert.match(query, /不是确定的未来/)
+})
+
+test('rejects invalid and mismatched lines without calling Dify', async () => {
+  process.env.DIFY_API_KEY = fakeKey
+  let calls = 0
+  globalThis.fetch = async () => { calls++; return reply({ answer: 'unexpected' }) }
+  for (const lines of [[6,6,8,7,8], [6,6,8,7,8,10], [6,6,8,7,8,'6'], [6,6,8,7,8,6], null]) {
+    const response = await interpret(request({ ...valid, lines }))
+    assert.equal(response.status, 400)
+  }
+  assert.equal(calls, 0)
+})
+
+test('a valid cast without changing lines does not invent a related hexagram', async () => {
+  process.env.DIFY_API_KEY = fakeKey
+  let query = ''
+  globalThis.fetch = async (_url, init) => { query = JSON.parse(init.body).query; return reply({ answer: '思考' }) }
+  const response = await interpret(request({ ...valid, lines: [7,7,7,7,7,7] }))
+  assert.equal(response.status, 200)
+  assert.match(query, /"changing":\[\]/)
+  assert.match(query, /"related":null/)
+})
+
 test('legacy Vercel Dify variables still work, while server variables take precedence', async () => {
   process.env.NEXT_PUBLIC_DIFY_API_KEY = fakeKey
   process.env.NEXT_PUBLIC_DIFY_API_BASE = 'https://legacy.example/v1/'

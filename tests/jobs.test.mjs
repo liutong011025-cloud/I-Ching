@@ -174,3 +174,33 @@ test('invalidated in-flight work cannot overwrite its replacement', async () => 
   await old
   assert.equal(readResultCache(id).image, 'https://images.example/fresh.jpg')
 })
+
+test('interpretations for the same hexagram and question distinguish the actual changing lines', async () => {
+  const firstLines = [9,7,7,7,7,7]
+  const secondLines = [7,9,7,7,7,7]
+  const first = getReadingJob('text', HEXAGRAMS[0], question, 'zh', firstLines)
+  const second = getReadingJob('text', HEXAGRAMS[0], question, 'zh', secondLines)
+  assert.notEqual(first, second)
+  assert.deepEqual(calls.map(call => call.body.lines), [firstLines, secondLines])
+  pending[0](reply({ answer: '初爻动' }))
+  pending[1](reply({ answer: '二爻动' }))
+  assert.equal(await first, '初爻动')
+  assert.equal(await second, '二爻动')
+  assert.equal(await getReadingJob('text', HEXAGRAMS[0], question, 'zh', firstLines), '初爻动')
+  assert.equal(calls.length, 2)
+})
+
+test('line-specific text cache and image cache coexist without repeating image generation', async () => {
+  const lines = [9,7,7,7,7,7]
+  const image = getReadingJob('image', HEXAGRAMS[0], question, 'zh', lines)
+  const text = getReadingJob('text', HEXAGRAMS[0], question, 'zh', lines)
+  pending[0](reply({ url: 'https://images.example/same.jpg' }))
+  pending[1](reply({ answer: '一条动爻' }))
+  await Promise.all([image, text])
+  assert.equal(readResultCache(id).image, 'https://images.example/same.jpg')
+  assert.equal(readResultCache(JSON.stringify([1, question, lines]), 'lines').answers.zh, '一条动爻')
+  invalidateReadingJob('text', HEXAGRAMS[0], question, 'zh', lines)
+  assert.equal(readResultCache(id).image, 'https://images.example/same.jpg')
+  assert.equal(await getReadingJob('image', HEXAGRAMS[0], question, 'en', lines), 'https://images.example/same.jpg')
+  assert.equal(calls.length, 2)
+})

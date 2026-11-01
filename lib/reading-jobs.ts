@@ -19,15 +19,16 @@ function pruneJobs() {
 
 /** Share work across effect cleanup/remounts. A component only cancels its own state update. */
 export function getReadingJob(
-  kind: 'text' | 'image', hexagram: Hexagram, question: string, language: AiLanguage,
+  kind: 'text' | 'image', hexagram: Hexagram, question: string, language: AiLanguage, lines?: number[],
 ): Promise<string> {
   pruneJobs()
-  const id = JSON.stringify([hexagram.number, question])
+  const scope = kind === 'text' && lines ? 'lines' : 'default'
+  const id = JSON.stringify(scope === 'lines' ? [hexagram.number, question, lines] : [hexagram.number, question])
   const key = JSON.stringify([kind, id, kind === 'text' ? language : 'shared'])
   const existing = jobs.get(key)
   if (existing) return existing.promise
 
-  const cached = readResultCache(id)
+  const cached = readResultCache(id, scope)
   const value = kind === 'text' ? cached?.answers[language] : cached?.image
   if (value && cached) {
     const promise = Promise.resolve(value)
@@ -39,11 +40,11 @@ export function getReadingJob(
   const currentEpoch = epoch
   const job: ReadingJob = { promise: Promise.resolve('') }
   const request = kind === 'text'
-    ? getHexagramInterpretation(hexagram, question, language)
+    ? getHexagramInterpretation(hexagram, question, language, { lines })
     : generateHexagramImage(hexagram, question, language)
   job.promise = request.then(result => {
     if (currentEpoch === epoch && !job.invalidated) {
-      cacheResult(id, kind === 'text' ? { language, answer: result } : { image: result })
+      cacheResult(id, kind === 'text' ? { language, answer: result } : { image: result }, scope)
       job.expiresAt = Date.now() + READING_CACHE_TTL_MS
       pruneJobs()
     }
@@ -65,12 +66,13 @@ export function clearReadingJobs() {
 
 /** Discard a broken image URL or one language's reading while keeping other successful content. */
 export function invalidateReadingJob(
-  kind: 'text' | 'image', hexagram: Hexagram, question: string, language: AiLanguage,
+  kind: 'text' | 'image', hexagram: Hexagram, question: string, language: AiLanguage, lines?: number[],
 ) {
-  const id = JSON.stringify([hexagram.number, question])
+  const scope = kind === 'text' && lines ? 'lines' : 'default'
+  const id = JSON.stringify(scope === 'lines' ? [hexagram.number, question, lines] : [hexagram.number, question])
   const key = JSON.stringify([kind, id, kind === 'text' ? language : 'shared'])
   const existing = jobs.get(key)
   if (existing) existing.invalidated = true
   jobs.delete(key)
-  invalidateCachedResult(id, kind, language)
+  invalidateCachedResult(id, kind, language, scope)
 }
